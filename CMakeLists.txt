@@ -2,7 +2,8 @@ cmake_minimum_required(VERSION 3.3)
 project(enrico Fortran C CXX)
 
 option(USE_NEK  "Determines if Nek5000 will be included" ON)
-option(USE_FOAM  "Determines if OpenFOAM will be included" ON)
+option(USE_FOAM  "Determines if OpenFOAM will be included" OFF)
+option(BUILD_FOAM "Build vendored version of OpenFOAM" OFF)
 
 # On BG/Q, linking requires -dynamic, not -rdynamic
 if (CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "ppc64")
@@ -10,6 +11,9 @@ if (CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "ppc64")
 endif ()
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
+
+# Build shared libraries by default
+set(BUILD_SHARED_LIBS ON)
 
 # =============================================================================
 # Check for SCALE (optional)
@@ -62,11 +66,102 @@ endif()
 add_subdirectory(vendor/openmc)
 
 # =============================================================================
-# Find OpenFOAM installation
+# Build OpenFOAM
 # =============================================================================
 if (USE_FOAM)
-  add_subdirectory(cht_interface)
-  find_package(OpenFOAM REQUIRED)
+
+  add_custom_target(OpenFOAM-build COMMAND bash -c "${CMAKE_SOURCE_DIR}/vendor/openfoam/build_openfoam.sh 20")
+  set(OPENFOAM_DIR ${CMAKE_SOURCE_DIR}/vendor/openfoam/OpenFOAM-dev)
+
+  set(OPENFOAM_DIR ${CMAKE_SOURCE_DIR}/vendor/openfoam/OpenFOAM-dev)
+  set(OPENFOAM_SRC ${OPENFOAM_DIR}/src/)
+
+  set(OPENFOAM_LINK_DIRS ${OPENFOAM_DIR}/platforms/linux64GccDPInt32/lib)
+
+  list(APPEND CMAKE_BUILD_RPATH ${OPENFOAM_LINK_DIRS})
+  list(APPEND CMAKE_INSTALL_RPATH ${OPENFOAM_LINK_DIRS})
+#   message(STATUS "RPATH: ${CMAKE_BUILD_RPATH}")
+#   set(CMAKE_SKIP_BUILD_RPATH FALSE)
+#   set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+#   set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
+  # removed -m64 flag from this list
+  set(OPENFOAM_DEFINITIONS -Dlinux64 -DWM_ARCH_OPTION=64 -DWM_DP -DWM_LABEL_SIZE=32 -DNoRepository)
+  set(OPENFOAM_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Xlinker --no-as-needed -Xlinker --add-needed")
+
+  set(CHT_DIR ${OPENFOAM_DIR}/applications/solvers/heatTransfer/chtMultiRegionFoam/)
+  set(OPENFOAM_SOURCES
+  ${CHT_DIR}/solid/solidRegionDiffNo.C
+  ${CHT_DIR}/fluid/compressibleCourantNo.C)
+
+  set(OPENFOAM_INCLUDE_DIRS
+  ${CHT_DIR}/
+  ${CHT_DIR}/fluid/
+  ${CHT_DIR}/solid/
+  ${CHT_DIR}/porousFluid/
+  ${CHT_DIR}/porousSolid/
+  ${CHT_DIR}/include/
+  ${OPENFOAM_SRC}/meshTools/lnInclude/
+  ${OPENFOAM_SRC}/sampling/lnInclude/
+  ${OPENFOAM_SRC}/finiteVolume/lnInclude/
+  ${OPENFOAM_SRC}/finiteVolume/cfdTools/
+  ${OPENFOAM_SRC}/thermophysicalModels/basic/lnInclude/
+  ${OPENFOAM_SRC}/thermophysicalModels/specie/lnInclude/
+  ${OPENFOAM_SRC}/thermophysicalModels/reactionThermo/lnInclude/
+  ${OPENFOAM_SRC}/thermophysicalModels/solidThermo/lnInclude/
+  ${OPENFOAM_SRC}/thermophysicalModels/chemistryModel/lnInclude/
+  ${OPENFOAM_SRC}/ODE/lnInclude/
+  ${OPENFOAM_SRC}/combustionModels/lnInclude/
+  ${OPENFOAM_SRC}/MomentumTransportModels/momentumTransportModels/lnInclude/
+  ${OPENFOAM_SRC}/MomentumTransportModels/compressible/lnInclude/
+  ${OPENFOAM_SRC}/ThermophysicalTransportModels/lnInclude/
+  ${OPENFOAM_SRC}/ThermophysicalTransportModels/rhoReactionThermo/lnInclude/
+  ${OPENFOAM_SRC}/radiationModels/lnInclude/
+  ${OPENFOAM_SRC}/regionModels/regionModel/lnInclude/
+  ${OPENFOAM_SRC}/OpenFOAM/lnInclude/
+  ${OPENFOAM_SRC}/OSspecific/POSIX/lnInclude/
+  )
+
+  set(OPENFOAM_EXTRA_LIBS dl m)
+  set(OPENFOAM_LIBRARY_NAMES
+  fluidThermophysicalModels
+  specie
+  reactionThermophysicalModels
+  solidThermo
+  chemistryModel
+  ODE
+  combustionModels
+  momentumTransportModels
+  fluidThermoMomentumTransportModels
+  thermophysicalTransportModels
+  rhoReactionThermophysicalTransportModels
+  meshTools
+  finiteVolume
+  radiationModels
+  fvOptions
+  regionModels
+  sampling
+  OpenFOAM
+  Pstream
+  ${OPENFOAM_EXTRA_LIBS}
+  )
+
+  add_library(openFOAM-imported SHARED ${OPENFOAM_SOURCES})
+  add_dependencies(openFOAM-imported OpenFOAM-build)
+
+  # get absolute paths of the necessary librares
+  foreach(FOAM_LIB ${OPENFOAM_LIBRARY_NAMES})
+    find_library("${FOAM_LIB}_LIB" ${FOAM_LIB} HINTS ${OPENFOAM_LINK_DIRS} PATH_SUFFIXES mpi-system)
+    list(APPEND OPENFOAM_LIBRARIES ${${FOAM_LIB}_LIB})
+  endforeach(FOAM_LIB ${OPENFOAM_LIBRARY_NAMES})
+
+  ### FOR FUTURE USE, IMPORTED TARGET FOR OPENFOAM ###
+  #add_library(openFOAM-imported SHARED ${CHT_DIR}/enricoFoamLibrary.C ${OPENFOAM_SOURCES})
+  target_compile_definitions(openFOAM-imported PUBLIC ${OPENFOAM_DEFINITIONS})
+  set_target_properties(openFOAM-imported PROPERTIES LINK_FLAGS ${OPENFOAM_LINKER_FLAGS})
+  target_link_libraries(openFOAM-imported PUBLIC ${OPENFOAM_LIBRARIES})
+  target_include_directories(openFOAM-imported PUBLIC ${OPENFOAM_INCLUDE_DIRS})
+
 endif()
 
 # =============================================================================
@@ -132,7 +227,7 @@ endif()
 
 if (USE_FOAM)
     target_compile_definitions(libenrico PRIVATE USE_FOAM)
-#    list(APPEND LIBRARIES ${OPENFOAM_LIBRARIES})
+    list(APPEND LIBRARIES ${OPENFOAM_LIBRARIES})
     list(APPEND LIBRARIES openFOAM-imported)
 endif()
 

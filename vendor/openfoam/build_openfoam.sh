@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# change to directory of this script
+cd "$(dirname "$0")"
+
+CC=mpicc
+
+export LDFLAGS="-Wl,-rpath=$(pwd)/OpenFOAM-dev/platforms/linux64GccDPInt32Opt/lib $LDFLAGS"
+
 MPIARGS=$($CC -show)
 
 if [[ -z $1 ]]; then
