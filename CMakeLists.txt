@@ -76,14 +76,7 @@ if (USE_FOAM)
   set(OPENFOAM_DIR ${CMAKE_SOURCE_DIR}/vendor/openfoam/OpenFOAM-dev)
   set(OPENFOAM_SRC ${OPENFOAM_DIR}/src/)
 
-  set(OPENFOAM_LINK_DIRS ${OPENFOAM_DIR}/platforms/linux64GccDPInt32/lib)
-
-  list(APPEND CMAKE_BUILD_RPATH ${OPENFOAM_LINK_DIRS})
-  list(APPEND CMAKE_INSTALL_RPATH ${OPENFOAM_LINK_DIRS})
-#   message(STATUS "RPATH: ${CMAKE_BUILD_RPATH}")
-#   set(CMAKE_SKIP_BUILD_RPATH FALSE)
-#   set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
-#   set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+  set(OPENFOAM_LINK_DIRS ${OPENFOAM_DIR}/platforms/linux64GccDPInt32Opt/lib)
 
   # removed -m64 flag from this list
   set(OPENFOAM_DEFINITIONS -Dlinux64 -DWM_ARCH_OPTION=64 -DWM_DP -DWM_LABEL_SIZE=32 -DNoRepository)
@@ -122,7 +115,6 @@ if (USE_FOAM)
   ${OPENFOAM_SRC}/OSspecific/POSIX/lnInclude/
   )
 
-  set(OPENFOAM_EXTRA_LIBS dl m)
   set(OPENFOAM_LIBRARY_NAMES
   fluidThermophysicalModels
   specie
@@ -142,25 +134,32 @@ if (USE_FOAM)
   regionModels
   sampling
   OpenFOAM
-  Pstream
-  ${OPENFOAM_EXTRA_LIBS}
   )
 
-  add_library(openFOAM-imported SHARED ${OPENFOAM_SOURCES})
-  add_dependencies(openFOAM-imported OpenFOAM-build)
+  set(OPENFOAM_MPI_LIBS Pstream)
+
+  add_library(OpenFOAM SHARED ${OPENFOAM_SOURCES})
+  add_dependencies(OpenFOAM OpenFOAM-build)
 
   # get absolute paths of the necessary librares
   foreach(FOAM_LIB ${OPENFOAM_LIBRARY_NAMES})
-    find_library("${FOAM_LIB}_LIB" ${FOAM_LIB} HINTS ${OPENFOAM_LINK_DIRS} PATH_SUFFIXES mpi-system)
-    list(APPEND OPENFOAM_LIBRARIES ${${FOAM_LIB}_LIB})
+    add_library("${FOAM_LIB}_LIB" SHARED IMPORTED GLOBAL)
+    set_target_properties("${FOAM_LIB}_LIB" PROPERTIES IMPORTED_LOCATION ${OPENFOAM_LINK_DIRS}/lib${FOAM_LIB}${CMAKE_SHARED_LIBRARY_SUFFIX})
+    add_dependencies("${FOAM_LIB}_LIB" OpenFOAM-build)
+    list(APPEND OPENFOAM_LIBRARIES "${FOAM_LIB}_LIB")
   endforeach(FOAM_LIB ${OPENFOAM_LIBRARY_NAMES})
 
-  ### FOR FUTURE USE, IMPORTED TARGET FOR OPENFOAM ###
-  #add_library(openFOAM-imported SHARED ${CHT_DIR}/enricoFoamLibrary.C ${OPENFOAM_SOURCES})
-  target_compile_definitions(openFOAM-imported PUBLIC ${OPENFOAM_DEFINITIONS})
-  set_target_properties(openFOAM-imported PROPERTIES LINK_FLAGS ${OPENFOAM_LINKER_FLAGS})
-  target_link_libraries(openFOAM-imported PUBLIC ${OPENFOAM_LIBRARIES})
-  target_include_directories(openFOAM-imported PUBLIC ${OPENFOAM_INCLUDE_DIRS})
+  foreach(FOAM_LIB ${OPENFOAM_MPI_LIBS})
+    add_library("${FOAM_LIB}_LIB" SHARED IMPORTED GLOBAL)
+    set_target_properties("${FOAM_LIB}_LIB" PROPERTIES IMPORTED_LOCATION ${OPENFOAM_LINK_DIRS}/mpi-system/lib${FOAM_LIB}${CMAKE_SHARED_LIBRARY_SUFFIX})
+    add_dependencies("${FOAM_LIB}_LIB" OpenFOAM-build)
+    list(APPEND OPENFOAM_LIBRARIES "${FOAM_LIB}_LIB")
+  endforeach(FOAM_LIB ${OPENFOAM_MPI_LIBS})
+
+  target_compile_definitions(OpenFOAM PUBLIC ${OPENFOAM_DEFINITIONS})
+  set_target_properties(OpenFOAM PROPERTIES LINK_FLAGS ${OPENFOAM_LINKER_FLAGS})
+  target_link_libraries(OpenFOAM ${OPENFOAM_LIBRARIES})
+  target_include_directories(OpenFOAM PUBLIC ${OPENFOAM_INCLUDE_DIRS})
 
 endif()
 
@@ -227,8 +226,7 @@ endif()
 
 if (USE_FOAM)
     target_compile_definitions(libenrico PRIVATE USE_FOAM)
-    list(APPEND LIBRARIES ${OPENFOAM_LIBRARIES})
-    list(APPEND LIBRARIES openFOAM-imported)
+    list(APPEND LIBRARIES OpenFOAM)
 endif()
 
 if (SCALE_FOUND)
