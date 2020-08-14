@@ -5,7 +5,7 @@ import numpy as np
 import openmc
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-s', '--short', action='store_true')
+parser.add_argument('-l', '--length',type=int, default=10)
 parser.add_argument('-r', '--rings', type=int, default=5)
 parser.add_argument('-a', '--axial', type=int, default=0)
 args = parser.parse_args()
@@ -15,15 +15,14 @@ fuel_or = 0.406
 clad_ir = 0.414
 clad_or = 0.475
 pitch = 1.26
-if args.short:
-    fuel_length = 10.0
+
+if args.length == 10:
     boundary = 'reflective'
 else:
-    fuel_length = 200.0
     boundary = 'vacuum'
 
 if args.axial == 0:
-    n_axial = int(fuel_length)
+    n_axial = int(args.length)
 else:
     n_axial = args.axial
 
@@ -57,9 +56,9 @@ water.set_density('g/cm3', water_density)
 
 # Create cylinders
 radii = np.linspace(0., fuel_or, args.rings + 1)
-fuel_rings = [openmc.ZCylinder(R=r) for r in radii[1:]]
-clad_inner = openmc.ZCylinder(R=clad_ir)
-clad_outer = openmc.ZCylinder(R=clad_or)
+fuel_rings = [openmc.ZCylinder(r=R) for R in radii[1:]]
+clad_inner = openmc.ZCylinder(r=clad_ir)
+clad_outer = openmc.ZCylinder(r=clad_or)
 
 # Division for wedges
 xplane = openmc.XPlane(x0=0.0)
@@ -100,7 +99,7 @@ slice_univ = openmc.Universe(cells=cells)
 
 lattice = openmc.RectLattice()
 lattice.lower_left = (-pitch/2, -pitch/2, 0.0)
-lattice.pitch = (pitch, pitch, fuel_length/n_axial)
+lattice.pitch = (pitch, pitch, args.length/n_axial)
 lattice.universes = np.full((n_axial, 1, 1), slice_univ)
 
 # model boundaries
@@ -109,7 +108,7 @@ xmax = openmc.XPlane(x0=pitch/2, boundary_type='periodic')
 ymin = openmc.YPlane(y0=-pitch/2, boundary_type='periodic')
 ymax = openmc.YPlane(y0=pitch/2, boundary_type='periodic')
 zmin = openmc.ZPlane(z0=0.0, boundary_type=boundary)
-zmax = openmc.ZPlane(z0=fuel_length, boundary_type=boundary)
+zmax = openmc.ZPlane(z0=args.length, boundary_type=boundary)
 box = +xmin & -xmax & +ymin & -ymax & +zmin & -zmax
 
 main_cell = openmc.Cell(fill=lattice, region=box)
@@ -123,7 +122,7 @@ model.settings.batches = 50
 model.settings.source = openmc.Source(
     space=openmc.stats.Box(
         (-fuel_or, -fuel_or, 0.0),
-        (fuel_or, fuel_or, fuel_length),
+        (fuel_or, fuel_or, args.length),
         True
     )
 )
