@@ -63,6 +63,7 @@ endif ()
 if (USE_NEK)
     add_subdirectory(vendor/nek5000)
 endif()
+
 add_subdirectory(vendor/openmc)
 
 # =============================================================================
@@ -70,10 +71,26 @@ add_subdirectory(vendor/openmc)
 # =============================================================================
 if (USE_FOAM)
 
-  add_custom_target(OpenFOAM-build COMMAND bash -c "${CMAKE_SOURCE_DIR}/vendor/openfoam/build_openfoam.sh 20")
-  set(OPENFOAM_DIR ${CMAKE_SOURCE_DIR}/vendor/openfoam/OpenFOAM-dev)
+  set(MPI_ASSUME_NO_BUILTIN_MPI TRUE) # ensure CMake sets all relevant MPI variables
+  # set(MPI_CXX_COMPILER "{CMAKE_CXX_COMPILER}") # ensure we find the same MPI implementation
+  find_package(MPI REQUIRED)
+
+
+  set($ENV{MPI_ARCH_PATH} ${MPI_CXX_INCLUDE_DIRS}../)
+  message(STATUS "${MPI_CXX_INCLUDE_DIRS}")
+  # set($ENV{MPI_ARCH_FLAG} ${MPI_CXX_LINK_FLAGS})
+  message(STATUS "${MPI_CXX_LINK_FLAGS}")
+  # set($ENV{MPI_ARCH_INC}  ${MPI_CXX_INCLUDE_DIRS})
+  # set($ENV{MPI_ARCH_LIBS} ${MPI_CXX_LIBRARIES})
+  message(STATUS "${MPI_CXX_LIBRARIES}")
+  set($ENV{WM_MPLIB} "SYSTEMMPI")
 
   set(OPENFOAM_DIR ${CMAKE_SOURCE_DIR}/vendor/openfoam/OpenFOAM-dev)
+
+  #add_custom_target(OpenFOAM-build COMMAND "WM_MPLIB=SYSTEMMPI source ${OPENFOAM_DIR}/etc/bashrc ; ${OPENFOAM_DIR}/Allwmake libso")
+
+  add_custom_target(OpenFOAM-build COMMAND bash -c "${CMAKE_SOURCE_DIR}/vendor/openfoam/build_openfoam.sh 20")
+
   set(OPENFOAM_SRC ${OPENFOAM_DIR}/src/)
 
   set(OPENFOAM_LINK_DIRS ${OPENFOAM_DIR}/platforms/linux64GccDPInt32Opt/lib)
@@ -83,9 +100,7 @@ if (USE_FOAM)
   set(OPENFOAM_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Xlinker --no-as-needed -Xlinker --add-needed")
 
   set(CHT_DIR ${OPENFOAM_DIR}/applications/solvers/heatTransfer/chtMultiRegionFoam/)
-  set(OPENFOAM_SOURCES
-  ${CHT_DIR}/solid/solidRegionDiffNo.C
-  ${CHT_DIR}/fluid/compressibleCourantNo.C)
+  set(OPENFOAM_SOURCES ${CHT_DIR}/solid/solidRegionDiffNo.C ${CHT_DIR}/fluid/compressibleCourantNo.C)
 
   set(OPENFOAM_INCLUDE_DIRS
   ${CHT_DIR}/
@@ -138,11 +153,12 @@ if (USE_FOAM)
 
   set(OPENFOAM_MPI_LIBS Pstream)
 
-  add_library(OpenFOAM SHARED ${OPENFOAM_SOURCES})
-  add_dependencies(OpenFOAM OpenFOAM-build)
+  add_library(OpenFOAM-combined-lib SHARED ${OPENFOAM_SOURCES})
+  add_dependencies(OpenFOAM-combined-lib OpenFOAM-build)
 
   # get absolute paths of the necessary librares
   foreach(FOAM_LIB ${OPENFOAM_LIBRARY_NAMES})
+    # find_library("${FOAM_LIB}_LIB" REQUIRED PATHS ${OPENFOAM_DIR} PATH_SUFFIXES "platform/*/lib")
     add_library("${FOAM_LIB}_LIB" SHARED IMPORTED GLOBAL)
     set_target_properties("${FOAM_LIB}_LIB" PROPERTIES IMPORTED_LOCATION ${OPENFOAM_LINK_DIRS}/lib${FOAM_LIB}${CMAKE_SHARED_LIBRARY_SUFFIX})
     add_dependencies("${FOAM_LIB}_LIB" OpenFOAM-build)
@@ -156,10 +172,10 @@ if (USE_FOAM)
     list(APPEND OPENFOAM_LIBRARIES "${FOAM_LIB}_LIB")
   endforeach(FOAM_LIB ${OPENFOAM_MPI_LIBS})
 
-  target_compile_definitions(OpenFOAM PUBLIC ${OPENFOAM_DEFINITIONS})
-  set_target_properties(OpenFOAM PROPERTIES LINK_FLAGS ${OPENFOAM_LINKER_FLAGS})
-  target_link_libraries(OpenFOAM ${OPENFOAM_LIBRARIES})
-  target_include_directories(OpenFOAM PUBLIC ${OPENFOAM_INCLUDE_DIRS})
+  target_compile_definitions(OpenFOAM-combined-lib PUBLIC ${OPENFOAM_DEFINITIONS})
+  set_target_properties(OpenFOAM-combined-lib PROPERTIES LINK_FLAGS ${OPENFOAM_LINKER_FLAGS})
+  target_link_libraries(OpenFOAM-combined-lib ${OPENFOAM_LIBRARIES})
+  target_include_directories(OpenFOAM-combined-lib PUBLIC ${OPENFOAM_INCLUDE_DIRS})
 
 endif()
 
@@ -215,7 +231,8 @@ set(LIBRARIES
     xtensor
     heat_xfer
     pugixml
-    gsl-lite)
+    gsl-lite
+    ${MPI_CXX_LIBRARIES})
 
 target_compile_definitions(libenrico PRIVATE GSL_THROW_ON_CONTRACT_VIOLATION)
 
@@ -226,7 +243,7 @@ endif()
 
 if (USE_FOAM)
     target_compile_definitions(libenrico PRIVATE USE_FOAM)
-    list(APPEND LIBRARIES OpenFOAM)
+    list(APPEND LIBRARIES OpenFOAM-combined-lib)
 endif()
 
 if (SCALE_FOUND)
