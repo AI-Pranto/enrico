@@ -32,4 +32,4 @@ cd OpenFOAM-dev
 source etc/bashrc
 
 # build OpenFOAM
-./Allwmake -j $BUILD_JOBS
+./Allwmake -j $BUILD_JOBS libso
