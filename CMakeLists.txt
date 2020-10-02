@@ -90,7 +90,8 @@ if (USE_FOAM)
   MPI_ARCH_LIBS=${MPI_ARCH_LIBS}
   MPI_ROOT=/usr
   MPI_ARCH_PATH=/usr
-  ${CMAKE_SOURCE_DIR}/vendor/openfoam/build_openfoam.sh 10)
+  MAKEFLAGS="-j10"
+  ${CMAKE_SOURCE_DIR}/vendor/openfoam/build_openfoam.sh)
 
   set(OPENFOAM_SRC ${OPENFOAM_DIR}/src/)
 
