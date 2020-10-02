@@ -72,24 +72,15 @@ add_subdirectory(vendor/openmc)
 if (USE_FOAM)
 
   set(MPI_ASSUME_NO_BUILTIN_MPI TRUE) # ensure CMake sets all relevant MPI variables
-  # set(MPI_CXX_COMPILER "{CMAKE_CXX_COMPILER}") # ensure we find the same MPI implementation
   find_package(MPI REQUIRED)
 
-
-  set($ENV{MPI_ARCH_PATH} ${MPI_CXX_INCLUDE_DIRS}../)
-  message(STATUS "${MPI_CXX_INCLUDE_DIRS}")
-  # set($ENV{MPI_ARCH_FLAG} ${MPI_CXX_LINK_FLAGS})
-  message(STATUS "${MPI_CXX_LINK_FLAGS}")
-  # set($ENV{MPI_ARCH_INC}  ${MPI_CXX_INCLUDE_DIRS})
-  # set($ENV{MPI_ARCH_LIBS} ${MPI_CXX_LIBRARIES})
+  # some adjustments to the linking flags and libraries so they can be passed to
+  # the OpenFOAM build script successfully
   string(REPLACE " " "," MPI_ARCH_FLAGS "${MPI_CXX_LINK_FLAGS}")
   string(REPLACE ";" " " MPI_ARCH_LIBS "${MPI_CXX_LIBRARIES}")
-  message(STATUS "${MPI_CXX_LIBRARIES}")
   set($ENV{WM_MPLIB} "SYSTEMMPI")
 
   set(OPENFOAM_DIR ${CMAKE_SOURCE_DIR}/vendor/openfoam/OpenFOAM-dev)
-
-  #add_custom_target(OpenFOAM-build COMMAND "WM_MPLIB=SYSTEMMPI source ${OPENFOAM_DIR}/etc/bashrc ; ${OPENFOAM_DIR}/Allwmake libso")
 
   add_custom_target(OpenFOAM-build COMMAND
   ${CMAKE_COMMAND} -E env
@@ -98,6 +89,7 @@ if (USE_FOAM)
   MPI_ARCH_INC=-I${MPI_CXX_INCLUDE_DIRS}
   MPI_ARCH_LIBS=${MPI_ARCH_LIBS}
   MPI_ROOT=/usr
+  MPI_ARCH_PATH=/usr
   ${CMAKE_SOURCE_DIR}/vendor/openfoam/build_openfoam.sh 10)
 
   set(OPENFOAM_SRC ${OPENFOAM_DIR}/src/)
@@ -167,7 +159,6 @@ if (USE_FOAM)
 
   # get absolute paths of the necessary librares
   foreach(FOAM_LIB ${OPENFOAM_LIBRARY_NAMES})
-    # find_library("${FOAM_LIB}_LIB" REQUIRED PATHS ${OPENFOAM_DIR} PATH_SUFFIXES "platform/*/lib")
     add_library("${FOAM_LIB}_LIB" SHARED IMPORTED GLOBAL)
     set_target_properties("${FOAM_LIB}_LIB" PROPERTIES IMPORTED_LOCATION ${OPENFOAM_LINK_DIRS}/lib${FOAM_LIB}${CMAKE_SHARED_LIBRARY_SUFFIX})
     add_dependencies("${FOAM_LIB}_LIB" OpenFOAM-build)
