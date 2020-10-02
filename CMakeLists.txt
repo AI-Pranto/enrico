@@ -82,6 +82,8 @@ if (USE_FOAM)
   message(STATUS "${MPI_CXX_LINK_FLAGS}")
   # set($ENV{MPI_ARCH_INC}  ${MPI_CXX_INCLUDE_DIRS})
   # set($ENV{MPI_ARCH_LIBS} ${MPI_CXX_LIBRARIES})
+  string(REPLACE " " "," MPI_ARCH_FLAGS "${MPI_CXX_LINK_FLAGS}")
+  string(REPLACE ";" " " MPI_ARCH_LIBS "${MPI_CXX_LIBRARIES}")
   message(STATUS "${MPI_CXX_LIBRARIES}")
   set($ENV{WM_MPLIB} "SYSTEMMPI")
 
@@ -89,7 +91,14 @@ if (USE_FOAM)
 
   #add_custom_target(OpenFOAM-build COMMAND "WM_MPLIB=SYSTEMMPI source ${OPENFOAM_DIR}/etc/bashrc ; ${OPENFOAM_DIR}/Allwmake libso")
 
-  add_custom_target(OpenFOAM-build COMMAND bash -c "${CMAKE_SOURCE_DIR}/vendor/openfoam/build_openfoam.sh 20")
+  add_custom_target(OpenFOAM-build COMMAND
+  ${CMAKE_COMMAND} -E env
+  WM_MPLIB=SYSTEMMPI
+  MPI_ARCH_FLAGS=${MPI_CXX_LINK_FLAGS}
+  MPI_ARCH_INC=-I${MPI_CXX_INCLUDE_DIRS}
+  MPI_ARCH_LIBS=${MPI_ARCH_LIBS}
+  MPI_ROOT=/usr
+  ${CMAKE_SOURCE_DIR}/vendor/openfoam/build_openfoam.sh 10)
 
   set(OPENFOAM_SRC ${OPENFOAM_DIR}/src/)
 
