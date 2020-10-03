@@ -13,4 +13,7 @@
   <temperature_method>interpolation</temperature_method>
   <temperature_multipole>true</temperature_multipole>
   <temperature_range>300.0 1500.0</temperature_range>
+  <output>
+    <summary>false</summary>
+  </output>
 </settings>

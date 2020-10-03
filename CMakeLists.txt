@@ -80,7 +80,7 @@ if (USE_FOAM)
   string(REPLACE ";" " " MPI_ARCH_LIBS "${MPI_CXX_LIBRARIES}")
   set($ENV{WM_MPLIB} "SYSTEMMPI")
 
-  set(OPENFOAM_DIR ${CMAKE_SOURCE_DIR}/vendor/openfoam/OpenFOAM-dev)
+  set(OPENFOAM_DIR ${CMAKE_SOURCE_DIR}/vendor/OpenFOAM-dev)
   message(STATUS "$ENV{MAKEFLAGS}")
 
   # set config environment variables for the execute process command below

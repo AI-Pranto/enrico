@@ -11,8 +11,8 @@
 	url = https://github.com/catchorg/Catch2.git
 	branch = master
 [submodule "vendor/openfoam/openfoam_src"]
-	path = vendor/openfoam/OpenFOAM-dev
+	path = vendor/OpenFOAM-dev
 	url = https://github.com/lebuller/OpenFOAM-dev
 [submodule "vendor/openfoam/thirdparty_src"]
-	path = vendor/openfoam/ThirdParty-dev
+	path = vendor/ThirdParty-dev
 	url = https://github.com/OpenFOAM/ThirdParty-dev
