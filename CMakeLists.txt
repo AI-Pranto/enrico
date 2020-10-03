@@ -81,9 +81,11 @@ if (USE_FOAM)
   set($ENV{WM_MPLIB} "SYSTEMMPI")
 
   set(OPENFOAM_DIR ${CMAKE_SOURCE_DIR}/vendor/openfoam/OpenFOAM-dev)
+  message(STATUS "$ENV{MAKEFLAGS}")
 
-  add_custom_target(OpenFOAM-build COMMAND
-  ${CMAKE_COMMAND} -E env
+  add_custom_target(OpenFOAM-build
+  WORKING_DIRECTORY ${OPENFOAM_DIR}
+  COMMAND
   WM_MPLIB=SYSTEMMPI
   MPI_ARCH_FLAGS=${MPI_CXX_LINK_FLAGS}
   MPI_ARCH_INC=-I${MPI_CXX_INCLUDE_DIRS}
@@ -91,11 +93,23 @@ if (USE_FOAM)
   MPI_ROOT=/usr
   MPI_ARCH_PATH=/usr
   MAKEFLAGS="-j10"
-  ${CMAKE_SOURCE_DIR}/vendor/openfoam/build_openfoam.sh)
+  bash -c 'cd ${OPENFOAM_DIR} && source etc/bashrc && ./Allwmake && echo $FOAM_LIBBIN > ${CMAKE_CURRENT_BINARY_DIR}/FOAM_LIBS.txt')
 
+  set(ENV{WM_MPLIB} SYSTEMMPI)
+  set(ENV{MPI_ARCH_FLAGS} ${MPI_CXX_LINK_FLAGS})
+  set(ENV{MPI_ARCH_INC} -I${MPI_CXX_INCLUDE_DIRS})
+  set(ENV{MPI_ARCH_LIBS} ${MPI_ARCH_LIBS})
+  set(ENV{MPI_ROOT} /usr)
+  set(ENV{MPI_ARCH_PATH} /usr)
+
+  execute_process(
+  WORKING_DIRECTORY ${OPENFOAM_DIR}
+  COMMAND bash -c "source etc/bashrc && echo $FOAM_LIBBIN"
+  OUTPUT_VARIABLE OPENFOAM_LINK_DIRS
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+  message(STATUS "OF LINK DIRS: ${OPENFOAM_LINK_DIRS}")
   set(OPENFOAM_SRC ${OPENFOAM_DIR}/src/)
-
-  set(OPENFOAM_LINK_DIRS ${OPENFOAM_DIR}/platforms/linux64GccDPInt32Opt/lib)
 
   # removed -m64 flag from this list
   set(OPENFOAM_DEFINITIONS -Dlinux64 -DWM_ARCH_OPTION=64 -DWM_DP -DWM_LABEL_SIZE=32 -DNoRepository)
