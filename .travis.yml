@@ -23,9 +23,11 @@ matrix:
   include:
     - env: MODE="openmc_nek5000"
     - env: MODE="openmc_heat_surrogate"
+    - env: MODE="openmc_openfoam"
 
 before_install:
   - bash ci/patch_singlerod_rea.sh
+  - bash ci/patch_singlerod_openfoam.sh
 
 install:
   - bash ci/cmake_singlerod.sh
