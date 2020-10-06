@@ -88,8 +88,8 @@ if (USE_FOAM)
   set(ENV{MPI_ARCH_FLAGS} ${MPI_CXX_LINK_FLAGS})
   set(ENV{MPI_ARCH_INC} -I${MPI_CXX_INCLUDE_DIRS})
   set(ENV{MPI_ARCH_LIBS} ${MPI_ARCH_LIBS})
-  set(ENV{MPI_ROOT} ${MPI_INCLUDE_DIRS}/../../)
-  set(ENV{MPI_ARCH_PATH} ${MPI_INCLUDE_DIRS}/../../)
+  set(ENV{MPI_ROOT} ${MPI_CXX_INCLUDE_DIRS}/../../)
+  set(ENV{MPI_ARCH_PATH} ${MPI_CXX_INCLUDE_DIRS}/../../)
   execute_process(
   WORKING_DIRECTORY ${OPENFOAM_DIR}
   COMMAND bash -c "source etc/bashrc && echo $FOAM_LIBBIN"
@@ -99,8 +99,8 @@ if (USE_FOAM)
   message(STATUS ${MPI_CXX_LINK_FLAGS})
   message(STATUS -I${MPI_CXX_INCLUDE_DIRS})
   message(STATUS ${MPI_ARCH_LIBS})
-  message(STATUS ${MPI_INCLUDE_DIRS}/../../)
-  message(STATUS ${MPI_INCLUDE_DIRS}/../../)
+  message(STATUS ${MPI_CXX_INCLUDE_DIRS}/../../)
+  message(STATUS ${MPI_CXX_INCLUDE_DIRS}/../../)
 
   # create a custom target for building OpenFOAM
   add_custom_target(OpenFOAM-build
@@ -110,8 +110,8 @@ if (USE_FOAM)
   MPI_ARCH_FLAGS=${MPI_CXX_LINK_FLAGS}
   MPI_ARCH_INC=-I${MPI_CXX_INCLUDE_DIRS}
   MPI_ARCH_LIBS=${MPI_ARCH_LIBS}
-  MPI_ROOT=${MPI_INCLUDE_DIRS}/../../
-  MPI_ARCH_PATH=${MPI_INCLUDE_DIRS}/../../
+  MPI_ROOT=${MPI_CXX_INCLUDE_DIRS}/../../
+  MPI_ARCH_PATH=${MPI_CXX_INCLUDE_DIRS}/../../
   MAKEFLAGS="-j10"
   bash -c 'cd ${OPENFOAM_DIR} && source etc/bashrc && ./Allwmake && echo $FOAM_LIBBIN > ${CMAKE_CURRENT_BINARY_DIR}/FOAM_LIBS.txt')
 
