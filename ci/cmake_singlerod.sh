@@ -5,5 +5,6 @@ mkdir -p tests/singlerod/short/build
 cd tests/singlerod/short/build
 echo $(which mpicxx)
 echo $(cmake --version)
+echo $(/usr/bin/mpicxx -show)
 CC=$(which mpicc) CXX=$(which mpicxx) FC=$(which mpif90) \
   cmake -DUSE_FOAM=ON -DUSR_LOC=../ ../../../..
