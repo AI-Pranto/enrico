@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.3)
+cmake_minimum_required(VERSION 3.10)
 project(enrico Fortran C CXX)
 
 option(USE_NEK  "Determines if Nek5000 will be included" ON)
