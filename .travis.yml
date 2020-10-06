@@ -6,6 +6,7 @@ addons:
     packages:
       - gfortran
       - mpich
+      - cmake
       - libmpich-dev
       - libhdf5-mpich-dev
       - liblapack-dev
