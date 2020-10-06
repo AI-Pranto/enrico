@@ -96,6 +96,12 @@ if (USE_FOAM)
   OUTPUT_VARIABLE OPENFOAM_LINK_DIRS
   OUTPUT_STRIP_TRAILING_WHITESPACE)
 
+  message(STATUS ${MPI_CXX_LINK_FLAGS})
+  message(STATUS -I${MPI_CXX_INCLUDE_DIRS})
+  message(STATUS ${MPI_ARCH_LIBS})
+  message(STATUS ${MPI_INCLUDE_DIRS}/../../)
+  message(STATUS ${MPI_INCLUDE_DIRS}/../../)
+
   # create a custom target for building OpenFOAM
   add_custom_target(OpenFOAM-build
   WORKING_DIRECTORY ${OPENFOAM_DIR}
