@@ -10,6 +10,7 @@ addons:
       - libmpich-dev
       - libhdf5-mpich-dev
       - liblapack-dev
+      - flex
     config:
       retries: true
 cache:
@@ -31,6 +32,7 @@ before_install:
   - bash ci/patch_singlerod_openfoam.sh
 
 install:
+  - travis_wait 30 mvn install
   - bash ci/cmake_singlerod.sh
   - bash ci/build_singlerod.sh
   - bash ci/build_unittests.sh
